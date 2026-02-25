@@ -2,6 +2,8 @@
 
 namespace TinyRouter\Routing;
 
+use TinyRouter\Contract\MiddlewareInterface;
+
 final class RouteDefinition
 {
     public function __construct(private readonly Route $route) {}
@@ -15,6 +17,12 @@ final class RouteDefinition
     public function middleware(string ...$classes): static
     {
         $this->route->addRouteMiddlewares($classes);
+        return $this;
+    }
+
+    public function middlewareInstance(MiddlewareInterface ...$instances): static
+    {
+        $this->route->addRouteMiddlewares($instances);
         return $this;
     }
 }
