@@ -9,7 +9,7 @@ A zero-dependency PHP 8.2 router library with URL parameters, route groups, midd
 ## Installation
 
 ```bash
-composer require vendor/tiny-router
+composer require bromimo/tiny-router
 ```
 
 ## Quick Start
