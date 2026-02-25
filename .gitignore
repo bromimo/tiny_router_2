@@ -1,0 +1,10 @@
+.osp/
+.idea/
+vendor/
+composer.lock
+db.cfg.php
+composer.phar
+composer-setup.php
+.env
+.env.backup
+.env.production
