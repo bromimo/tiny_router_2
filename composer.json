@@ -1,5 +1,5 @@
 {
-    "name": "vendor/tiny-router",
+    "name": "bromimo/tiny-router",
     "description": "Miniature PHP 8.2 router library",
     "type": "library",
     "license": "MIT",
