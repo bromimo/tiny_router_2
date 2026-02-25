@@ -1,0 +1,22 @@
+{
+    "name": "vendor/tiny-router",
+    "description": "Miniature PHP 8.2 router library",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11"
+    },
+    "autoload": {
+        "psr-4": {
+            "TinyRouter\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "TinyRouter\\Tests\\": "tests/"
+        }
+    }
+}
