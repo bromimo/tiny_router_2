@@ -16,6 +16,20 @@ final class RouteCollection
         $this->routes[] = $route;
     }
 
+    public function count(): int
+    {
+        return count($this->routes);
+    }
+
+    /**
+     * Вернуть маршруты, добавленные начиная с позиции $offset.
+     * @return Route[]
+     */
+    public function since(int $offset): array
+    {
+        return array_slice($this->routes, $offset);
+    }
+
     /**
      * @return array{route: Route, params: array<string, string>}
      * @throws NotFoundException

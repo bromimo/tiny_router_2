@@ -5,6 +5,7 @@ namespace TinyRouter\Facade;
 use TinyRouter\Contract\MiddlewareInterface;
 use TinyRouter\Http\Request;
 use TinyRouter\Http\Response;
+use TinyRouter\Routing\GroupDefinition;
 use TinyRouter\Routing\RouteDefinition;
 use TinyRouter\Routing\Router;
 
@@ -55,9 +56,14 @@ final class Route
         return self::getInstance()->options($path, $handler);
     }
 
-    public static function group(string $prefix, callable $callback, array $middlewares = []): void
+    public static function group(string $prefix, callable $callback, array $middlewares = []): GroupDefinition
     {
-        self::getInstance()->group($prefix, $callback, $middlewares);
+        return self::getInstance()->group($prefix, $callback, $middlewares);
+    }
+
+    public static function addMiddlewareAlias(string $alias, string $class): void
+    {
+        self::getInstance()->addMiddlewareAlias($alias, $class);
     }
 
     public static function addMiddleware(string|MiddlewareInterface $middleware): void

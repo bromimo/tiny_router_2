@@ -24,6 +24,9 @@ class Router
     /** @var array<string, callable(string, Request): mixed> */
     private array $typeResolvers = [];
 
+    /** @var array<string, string> Алиасы middleware: 'alias' => ClassName */
+    private array $middlewareAliases = [];
+
     public function __construct()
     {
         $this->collection   = new RouteCollection();
@@ -73,18 +76,31 @@ class Router
         $this->typeResolvers[$baseClass] = $resolver;
     }
 
+    /**
+     * Register a middleware alias.
+     *
+     * @param string $alias  Short name, e.g. 'auth:api'
+     * @param string $class  Fully-qualified class name
+     */
+    public function addMiddlewareAlias(string $alias, string $class): void
+    {
+        $this->middlewareAliases[$alias] = $class;
+    }
+
     public function addMiddleware(string|MiddlewareInterface $middleware): void
     {
         $this->globalMiddlewares[] = $middleware;
     }
 
-    public function group(string $prefix, callable $callback, array $middlewares = []): void
+    public function group(string $prefix, callable $callback, array $middlewares = []): GroupDefinition
     {
         $this->prefixStack[]     = $prefix;
         $this->middlewareStack[] = $middlewares;
+        $snapshot = $this->collection->count();
         $callback($this);
         array_pop($this->prefixStack);
         array_pop($this->middlewareStack);
+        return new GroupDefinition($this->collection->since($snapshot));
     }
 
     public function dispatch(Request $request): Response
@@ -236,6 +252,7 @@ class Router
         if ($middleware instanceof MiddlewareInterface) {
             return $middleware;
         }
-        return new $middleware();
+        $class = $this->middlewareAliases[$middleware] ?? $middleware;
+        return new $class();
     }
 }
