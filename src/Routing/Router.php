@@ -7,7 +7,7 @@ use TinyRouter\Http\Method;
 use TinyRouter\Http\Request;
 use TinyRouter\Http\Response;
 
-final class Router
+class Router
 {
     private RouteCollection $collection;
     private UrlGenerator    $urlGenerator;
@@ -20,6 +20,9 @@ final class Router
 
     /** @var array<array<string|MiddlewareInterface>> current group middleware stack */
     private array $middlewareStack = [];
+
+    /** @var array<string, callable(string, Request): mixed> */
+    private array $typeResolvers = [];
 
     public function __construct()
     {
@@ -57,6 +60,19 @@ final class Router
         return $this->addRoute(Method::OPTIONS, $path, $handler);
     }
 
+    /**
+     * Register a type resolver for dependency injection.
+     * When a controller method parameter's type extends $baseClass,
+     * the callable $resolver is invoked to produce the argument value.
+     *
+     * @param string $baseClass Fully-qualified class or interface name
+     * @param callable(string, Request): mixed $resolver Receives the concrete type name and the current Request
+     */
+    public function addTypeResolver(string $baseClass, callable $resolver): void
+    {
+        $this->typeResolvers[$baseClass] = $resolver;
+    }
+
     public function addMiddleware(string|MiddlewareInterface $middleware): void
     {
         $this->globalMiddlewares[] = $middleware;
@@ -87,7 +103,13 @@ final class Router
             ...$route->getRouteMiddlewares(),
         ];
 
-        $pipeline = $this->buildPipeline($middlewares, $handler);
+        $diHandler = empty($this->typeResolvers)
+            ? $handler
+            : function (Request $req) use ($handler): Response {
+                return $handler(...$this->resolveParams($handler, $req));
+            };
+
+        $pipeline = $this->buildPipeline($middlewares, $diHandler);
 
         return $pipeline($request);
     }
@@ -111,7 +133,7 @@ final class Router
         return new RouteDefinition($route);
     }
 
-    private function resolveHandler(mixed $handler): callable
+    protected function resolveHandler(mixed $handler): callable
     {
         if (is_callable($handler)) {
             return $handler;
@@ -128,6 +150,71 @@ final class Router
         }
 
         throw new \InvalidArgumentException('Handler must be callable, [class, method], or invokable class name.');
+    }
+
+    /**
+     * Build the argument list for a handler using registered type resolvers and route params.
+     *
+     * @param callable $handler
+     * @param Request  $request
+     * @return array<mixed>
+     */
+    private function resolveParams(callable $handler, Request $request): array
+    {
+        $reflection = is_array($handler)
+            ? new \ReflectionMethod($handler[0], $handler[1])
+            : new \ReflectionFunction(\Closure::fromCallable($handler));
+
+        $args = [];
+
+        foreach ($reflection->getParameters() as $param) {
+            $type     = $param->getType();
+            $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+
+            if ($typeName === Request::class || $typeName === self::class) {
+                $args[] = $request;
+                continue;
+            }
+
+            if ($typeName && !$type->isBuiltin()) {
+                $resolver = $this->findResolver($typeName);
+                if ($resolver !== null) {
+                    $args[] = $resolver($typeName, $request);
+                    continue;
+                }
+                // No resolver — instantiate without arguments
+                $args[] = new $typeName();
+                continue;
+            }
+
+            // Scalar — read from route params by parameter name
+            $value = $request->params[$param->getName()] ?? null;
+
+            $args[] = match ($typeName) {
+                'int'   => (int) $value,
+                'float' => (float) $value,
+                'bool'  => (bool) $value,
+                default => (string) ($value ?? ''),
+            };
+        }
+
+        return $args;
+    }
+
+    /**
+     * Find a registered resolver for the given type, checking the class hierarchy.
+     *
+     * @param string $type Fully-qualified class name
+     * @return callable|null
+     */
+    private function findResolver(string $type): ?callable
+    {
+        foreach ($this->typeResolvers as $baseClass => $resolver) {
+            if ($type === $baseClass || is_subclass_of($type, $baseClass)) {
+                return $resolver;
+            }
+        }
+        return null;
     }
 
     private function buildPipeline(array $middlewares, callable $handler): callable

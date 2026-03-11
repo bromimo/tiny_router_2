@@ -219,4 +219,129 @@ class RouterTest extends TestCase
         $response = $router->dispatch(new Request(Method::GET, '/home', [], [], []));
         $this->assertSame('home', $response->getBody());
     }
+
+    // --- DI / addTypeResolver tests ---
+
+    public function test_di_injects_request_by_type(): void
+    {
+        $router = new Router();
+        $router->addTypeResolver(\stdClass::class, fn() => new \stdClass());
+
+        $router->get('/ping', function (Request $req): Response {
+            return new Response($req->path);
+        });
+
+        $response = $router->dispatch(new Request(Method::GET, '/ping', [], [], []));
+        $this->assertSame('/ping', $response->getBody());
+    }
+
+    public function test_di_injects_custom_type_via_resolver(): void
+    {
+        $dto    = new \stdClass();
+        $router = new Router();
+
+        $router->addTypeResolver(\stdClass::class, function (string $type, Request $req) use ($dto): \stdClass {
+            return $dto;
+        });
+
+        $router->get('/dto', function (\stdClass $obj): Response {
+            return new Response('resolved');
+        });
+
+        $response = $router->dispatch(new Request(Method::GET, '/dto', [], [], []));
+        $this->assertSame('resolved', $response->getBody());
+    }
+
+    public function test_di_resolver_receives_correct_type_and_request(): void
+    {
+        $capturedType    = null;
+        $capturedRequest = null;
+        $router          = new Router();
+
+        $router->addTypeResolver(\stdClass::class, function (string $type, Request $req) use (&$capturedType, &$capturedRequest): \stdClass {
+            $capturedType    = $type;
+            $capturedRequest = $req;
+            return new \stdClass();
+        });
+
+        $router->get('/check', fn(\stdClass $obj): Response => new Response('ok'));
+
+        $request = new Request(Method::GET, '/check', [], [], []);
+        $router->dispatch($request);
+
+        $this->assertSame(\stdClass::class, $capturedType);
+        $this->assertInstanceOf(Request::class, $capturedRequest);
+        $this->assertSame('/check', $capturedRequest->path);
+    }
+
+    public function test_di_injects_int_scalar_from_route_params(): void
+    {
+        $router = new Router();
+        $router->addTypeResolver(\stdClass::class, fn() => new \stdClass());
+
+        $router->get('/users/{id}', function (int $id): Response {
+            return new Response((string) $id);
+        });
+
+        $response = $router->dispatch(new Request(Method::GET, '/users/42', [], [], []));
+        $this->assertSame('42', $response->getBody());
+    }
+
+    public function test_di_injects_string_scalar_from_route_params(): void
+    {
+        $router = new Router();
+        $router->addTypeResolver(\stdClass::class, fn() => new \stdClass());
+
+        $router->get('/slugs/{slug}', function (string $slug): Response {
+            return new Response($slug);
+        });
+
+        $response = $router->dispatch(new Request(Method::GET, '/slugs/hello-world', [], [], []));
+        $this->assertSame('hello-world', $response->getBody());
+    }
+
+    public function test_di_injects_mixed_params(): void
+    {
+        $router = new Router();
+
+        $router->addTypeResolver(\stdClass::class, function (string $type, Request $req): \stdClass {
+            $obj     = new \stdClass();
+            $obj->id = (int) $req->params['id'];
+            return $obj;
+        });
+
+        $router->get('/items/{id}', function (\stdClass $item, int $id, Request $req): Response {
+            return new Response($item->id . ':' . $id . ':' . $req->path);
+        });
+
+        $response = $router->dispatch(new Request(Method::GET, '/items/7', [], [], []));
+        $this->assertSame('7:7:/items/7', $response->getBody());
+    }
+
+    public function test_di_subclass_matched_by_resolver(): void
+    {
+        $router = new Router();
+
+        $router->addTypeResolver(\stdClass::class, function (): \stdClass {
+            return new class extends \stdClass {};
+        });
+
+        $called = false;
+        $router->get('/sub', function (\stdClass $obj) use (&$called): Response {
+            $called = true;
+            return new Response('ok');
+        });
+
+        $router->dispatch(new Request(Method::GET, '/sub', [], [], []));
+        $this->assertTrue($called);
+    }
+
+    public function test_without_resolvers_behaves_as_before(): void
+    {
+        $router = new Router();
+        $router->get('/legacy', fn(Request $req) => new Response('legacy:' . $req->path));
+
+        $response = $router->dispatch(new Request(Method::GET, '/legacy', [], [], []));
+        $this->assertSame('legacy:/legacy', $response->getBody());
+    }
 }
