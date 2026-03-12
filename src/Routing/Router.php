@@ -141,6 +141,9 @@ class Router
     {
         $prefix   = implode('/', array_map(fn($s) => trim($s, '/'), $this->prefixStack));
         $fullPath = '/' . ltrim(rtrim($prefix, '/') . '/' . ltrim($path, '/'), '/');
+        if ($fullPath !== '/') {
+            $fullPath = rtrim($fullPath, '/');
+        }
 
         $groupMiddlewares = array_merge(...($this->middlewareStack ?: [[]]));
 
