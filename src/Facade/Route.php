@@ -6,6 +6,7 @@ use TinyRouter\Contract\MiddlewareInterface;
 use TinyRouter\Http\Request;
 use TinyRouter\Http\Response;
 use TinyRouter\Routing\GroupDefinition;
+use TinyRouter\Routing\PendingRouteGroup;
 use TinyRouter\Routing\RouteDefinition;
 use TinyRouter\Routing\Router;
 
@@ -54,6 +55,16 @@ final class Route
     public static function options(string $path, mixed $handler): RouteDefinition
     {
         return self::getInstance()->options($path, $handler);
+    }
+
+    public static function prefix(string $prefix): PendingRouteGroup
+    {
+        return new PendingRouteGroup(self::getInstance(), $prefix);
+    }
+
+    public static function middleware(string|array $middleware): PendingRouteGroup
+    {
+        return new PendingRouteGroup(self::getInstance(), '', (array)$middleware);
     }
 
     public static function group(string $prefix, callable $callback, array $middlewares = []): GroupDefinition
