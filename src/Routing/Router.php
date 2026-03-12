@@ -139,7 +139,7 @@ class Router
 
     private function addRoute(Method $method, string $path, mixed $handler): RouteDefinition
     {
-        $prefix   = implode('', $this->prefixStack);
+        $prefix   = implode('/', array_map(fn($s) => trim($s, '/'), $this->prefixStack));
         $fullPath = '/' . ltrim(rtrim($prefix, '/') . '/' . ltrim($path, '/'), '/');
 
         $groupMiddlewares = array_merge(...($this->middlewareStack ?: [[]]));
