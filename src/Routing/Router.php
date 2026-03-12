@@ -135,6 +135,14 @@ class Router
         return $this->urlGenerator->generate($name, $params);
     }
 
+    /** Вернуть все зарегистрированные маршруты.
+     * @return Route[]
+     */
+    public function routes(): array
+    {
+        return $this->collection->all();
+    }
+
     // -------------------------------------------------------------------------
 
     private function addRoute(Method $method, string $path, mixed $handler): RouteDefinition

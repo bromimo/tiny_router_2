@@ -91,4 +91,12 @@ final class Route
     {
         return self::getInstance()->url($name, $params);
     }
+
+    /** Вернуть все зарегистрированные маршруты.
+     * @return \TinyRouter\Routing\Route[]
+     */
+    public static function routes(): array
+    {
+        return self::getInstance()->routes();
+    }
 }

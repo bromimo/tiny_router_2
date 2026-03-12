@@ -21,6 +21,14 @@ final class RouteCollection
         return count($this->routes);
     }
 
+    /** Вернуть все зарегистрированные маршруты.
+     * @return Route[]
+     */
+    public function all(): array
+    {
+        return $this->routes;
+    }
+
     /**
      * Вернуть маршруты, добавленные начиная с позиции $offset.
      * @return Route[]

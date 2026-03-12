@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(cat:*)",
+      "Bash(composer install:*)",
+      "Bash(python3:*)",
+      "Bash(php:*)",
+      "Bash(tail:*)",
+      "Bash(cd /c/domains/tiny_router_2 && ./vendor/bin/phpunit --testdox 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && git push -u origin master 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && git add README.md && git commit -m \"docs: add README\" && git push 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && git push origin master:main 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && gh repo edit --default-branch master 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && git push origin --delete main 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && git add composer.json && git commit -m \"chore: rename package to bromimo/tiny-router\" && git push 2>&1)",
+      "Bash(cd /c/domains/tiny_router_2 && git tag v1.0.0 && git push origin v1.0.0 2>&1)"
+    ]
+  }
+}
