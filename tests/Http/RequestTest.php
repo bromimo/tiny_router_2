@@ -34,4 +34,22 @@ class RequestTest extends TestCase
         $this->assertSame(['id' => '42'], $new->params);
         $this->assertSame([], $req->params); // original unchanged
     }
+
+    public function test_body_is_stored_correctly(): void
+    {
+        $body = ['title' => 'Hello', 'content' => 'World'];
+        $req = new Request(Method::POST, '/posts', [], $body, []);
+
+        $this->assertSame($body, $req->body);
+    }
+
+    public function test_with_params_preserves_body(): void
+    {
+        $body = ['name' => 'test'];
+        $req = new Request(Method::PUT, '/items/1', [], $body, ['content-type' => 'application/json']);
+        $new = $req->withParams(['id' => '1']);
+
+        $this->assertSame($body, $new->body);
+        $this->assertSame(['id' => '1'], $new->params);
+    }
 }

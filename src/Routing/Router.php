@@ -6,6 +6,7 @@ use TinyRouter\Contract\MiddlewareInterface;
 use TinyRouter\Http\Method;
 use TinyRouter\Http\Request;
 use TinyRouter\Http\Response;
+use TinyRouter\Routing\MultiRouteDefinition;
 
 class Router
 {
@@ -26,6 +27,9 @@ class Router
 
     /** @var array<string, string> Алиасы middleware: 'alias' => ClassName */
     private array $middlewareAliases = [];
+
+    /** @var array<string, callable(string): MiddlewareInterface> Фабрики параметризованных middleware. */
+    private array $middlewareFactories = [];
 
     public function __construct()
     {
@@ -64,6 +68,20 @@ class Router
     }
 
     /**
+     * Register the same handler for multiple HTTP methods.
+     *
+     * @param Method[] $methods
+     */
+    public function match(array $methods, string $path, mixed $handler): MultiRouteDefinition
+    {
+        $definitions = [];
+        foreach ($methods as $method) {
+            $definitions[] = $this->addRoute($method, $path, $handler);
+        }
+        return new MultiRouteDefinition($definitions);
+    }
+
+    /**
      * Register a type resolver for dependency injection.
      * When a controller method parameter's type extends $baseClass,
      * the callable $resolver is invoked to produce the argument value.
@@ -85,6 +103,17 @@ class Router
     public function addMiddlewareAlias(string $alias, string $class): void
     {
         $this->middlewareAliases[$alias] = $class;
+    }
+
+    /**
+     * Register a factory for a parameterized middleware alias.
+     *
+     * @param string                               $alias   Base alias, e.g. 'rate_limit'
+     * @param callable(string): MiddlewareInterface $factory Receives params string, e.g. '5,60'
+     */
+    public function addMiddlewareFactory(string $alias, callable $factory): void
+    {
+        $this->middlewareFactories[$alias] = $factory;
     }
 
     public function addMiddleware(string|MiddlewareInterface $middleware): void
@@ -263,7 +292,19 @@ class Router
         if ($middleware instanceof MiddlewareInterface) {
             return $middleware;
         }
-        $class = $this->middlewareAliases[$middleware] ?? $middleware;
-        return new $class();
+
+        if (isset($this->middlewareAliases[$middleware])) {
+            return new $this->middlewareAliases[$middleware]();
+        }
+
+        if (str_contains($middleware, ':')) {
+            [$alias, $params] = explode(':', $middleware, 2);
+            if (isset($this->middlewareFactories[$alias])) {
+                return ($this->middlewareFactories[$alias])($params);
+            }
+            throw new \InvalidArgumentException("No middleware factory registered for alias '{$alias}'.");
+        }
+
+        return new $middleware();
     }
 }
