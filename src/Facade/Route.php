@@ -89,6 +89,15 @@ final class Route
         self::getInstance()->addMiddlewareAlias($alias, $class);
     }
 
+    /** Зарегистрировать фабрику параметризованного middleware.
+     * @param string                                                     $alias   Базовый алиас, напр. 'rate_limit'.
+     * @param callable(string): \TinyRouter\Contract\MiddlewareInterface $factory Получает строку параметров.
+     */
+    public static function addMiddlewareFactory(string $alias, callable $factory): void
+    {
+        self::getInstance()->addMiddlewareFactory($alias, $factory);
+    }
+
     public static function addMiddleware(string|MiddlewareInterface $middleware): void
     {
         self::getInstance()->addMiddleware($middleware);
