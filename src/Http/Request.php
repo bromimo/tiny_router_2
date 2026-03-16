@@ -25,11 +25,23 @@ readonly class Request
             }
         }
 
+        $body = $_POST;
+        if (empty($body) && in_array($method, [Method::POST, Method::PUT, Method::PATCH, Method::DELETE], true)) {
+            $raw         = file_get_contents('php://input');
+            $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+
+            if (str_starts_with($contentType, 'application/json')) {
+                $body = json_decode($raw, true) ?: [];
+            } else {
+                parse_str($raw, $body);
+            }
+        }
+
         return new self(
             method: $method,
             path: $path,
             query: $_GET,
-            body: $_POST,
+            body: $body,
             headers: $headers,
         );
     }
